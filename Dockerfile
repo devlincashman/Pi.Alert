@@ -1,7 +1,7 @@
 FROM debian:bullseye-slim
 
 # default UID and GID
-ENV USER=pi USER_ID=1000 USER_GID=1000 TZ=Europe/London PORT=20211
+ENV TZ=Europe/London
 
 # Todo, figure out why using a workdir instead of full paths don't work
 # Todo, do we still need all these packages? I can already see sudo which isn't needed
@@ -18,24 +18,20 @@ RUN apt-get update \
  
    
 # now creating user
-RUN groupadd --gid "${USER_GID}" "${USER}" && \
-    useradd \
-      --uid ${USER_ID} \
-      --gid ${USER_GID} \
-      --create-home \
-      --shell /bin/bash \
-      ${USER}
+RUN useradd \
+    --create-home \
+    --shell /bin/bash \
+    pi
 
 COPY . /home/pi/pialert
 
 # Pi.Alert 
 RUN rm /etc/nginx/sites-available/default \
-	&& ln -s /home/pi/pialert/install/default /etc/nginx/sites-available/default \
-    && sed -ie 's/listen 80/listen '${PORT}'/g' /etc/nginx/sites-available/default \
+  	&& ln -s /home/pi/pialert/install/default /etc/nginx/sites-available/default \
     # run the hardware vendors update
     && /home/pi/pialert/back/update_vendors.sh 
 
 # it's easy for permissions set in Git to be overridden, so doing it manually
-RUN chmod -R a+rxw /home/pi/pialert/
+RUN chown -R pi:www-data /home/pi/pialert/
 
-CMD ["/home/pi/pialert/dockerfiles/start.sh"]
+CMD ["/home/pi/pialert/docker-entrypoint.sh"]
